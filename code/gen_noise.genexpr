@@ -1,4 +1,14 @@
 //
+// Description : max/msp gen port of various noise functions
+//      Author : Todd Ingalls
+//  Maintainer : testcase
+// 
+//  license headers included below
+// 
+//  port is under MIT License
+// 
+
+//
 // Description : Array and textureless GLSL 2D simplex noise function.
 //      Author : Ian McEwan, Ashima Arts.
 //  Maintainer : stegu
@@ -90,7 +100,6 @@ mod7( x) {
 // Distributed under the MIT license. See LICENSE file.
 // https://github.com/stegu/webgl-noise
 //
-//based on code from Iñigo Quílez http://www.iquilezles.org 
 perlin_noise(v) { //vec3(89.42, 122.37, 201.53)
 	Param rep(89.42, 122.37, 201.53);
 	Param sgn(1, min=0, max=1);
@@ -164,6 +173,11 @@ perlin_noise(v) { //vec3(89.42, 122.37, 201.53)
 	res = 2.2 * n_xyz;
 	return mix(Normalize(res), res, sgn);
 }
+
+// The MIT License
+// Copyright (C) 2011 by Ashima Arts (Simplex noise)
+// Copyright (C) 2011-2016 by Stefan Gustavson (Classic noise and others)
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 simplex_noise(v) { 
@@ -291,9 +305,7 @@ ridged_multifractal(point, H=.25, lacunarity=2., frequency=1, octaves=6, offset=
 	}
 	return mix(clip(value),scale(value, 0, 1, -1, 1), sgn);
 }
-//
-//
-//
+
 //// Hybrid additive/multiplicative multifractal terrain model. 
 //// Copyright 1994 F. Kenton Musgrave 
 hybrid_multifractal(point, H=.25, lacunarity=3., frequency=1, octaves=4, offset=.25) {
@@ -322,8 +334,9 @@ hybrid_multifractal(point, H=.25, lacunarity=3., frequency=1, octaves=4, offset=
 		value += (rmd * simplex_noise(point * frequency,sgn=1) * pwr);
 	return mix(Normalize(value),value, sgn);
 }
-//
-//
+// Procedural fBm 
+// Ebert, D., F. K. Musgrave, D. Peachey, K. Perlin, and S. Worley. 2003. Texturing and modeling: A procedural approach, 437. Third Edition. San Francisco: Morgan Kaufmann. 
+
 fbm(point, H=.5, lacunarity=2,frequency=1, octaves=6) {
 	Param sgn(0, min=0, max=1);
 	value = 0.0;
@@ -392,11 +405,12 @@ hetero_terrain(point, H=.5, lacunarity=2., frequency=1., octaves=6, offset=.05) 
 	}
 	return mix(Normalize(value), value, sgn);
 }
-//
-//
-//
 
 
+// The MIT License
+// Copyright © 2013 Inigo Quilez
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// http://www.iquilezles.org/www/articles/voronoilines/voronoilines.htm
 voronoi_noise( point, jitter=1) {
 	Param sgn(0);
 	n = floor(point);
