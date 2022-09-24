@@ -1,0 +1,708 @@
+//
+// Description : Array and textureless GLSL 2D simplex noise function.
+//      Author : Ian McEwan, Ashima Arts.
+//  Maintainer : stegu
+//     Lastmod : 20110822 (ijm)
+//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
+//               Distributed under the MIT License. See LICENSE file.
+//               https://github.com/ashima/webgl-noise
+//               https://github.com/stegu/webgl-noise
+//
+mod289(x){return x - floor(x * (1.0 / 289.0)) * 289.0;}
+permute(x) {return mod289(((x*34.0)+1.0)*x);}
+taylorInvSqrt(r){return 1.79284291400159 - 0.85373472095314 * r;}
+
+grad4(j, ip){
+	ones = vec(1.0, 1.0, 1.0, -1.0);
+
+	p = floor( fract (j * ip.xyz) * 7.0) * ip.z - 1.0;
+	w = 1.5 - dot(abs(p.xyz), ones.xyz);
+	p1 = vec(p.x, p.y, p.z, w);
+	s = p1 < 0.;
+	p2 = p1.xyz + (s.xyz*2.0 - 1.0) * s.www;
+
+	return vec(p2.x, p2.y, p2.z, w);
+}
+
+fade(t ) {
+	return t*t*t*(t*(t*6.0-15.0)+10.0);
+}
+
+Normalize(val) {
+	return (val + 1.) / 2.;
+}
+
+distorted(p,x,dist) {
+	return p + vec(x,x,0) * dist; 
+}
+
+distorted2axis(p,x,y, dist) {
+	return p + vec(x,y,0) * dist; 
+}
+
+//p3 = vec3(vec2(pos.x, pos.y) * scale_offset.xy, 0.) + vec3(scale_offset.zw, time) + 2.673;
+
+
+hash2( point ) {
+	p = vec( dot(point,vec(127.1,311.7)), dot(point,vec(269.5,183.3)) );
+	return fract(sin(p)*43758.5453);
+}
+
+hash3( p ) {
+	q = vec(dot(p,vec(127.1,311.7)), 
+			dot(p,vec(269.5,183.3)), 
+			dot(p,vec(419.2,371.9)) );
+	return fract(sin(q)*43758.5453);
+}
+
+
+animate( p, t ) {
+	return 0.5 + 0.5 * sin( t + 6.2831 * p );
+}
+
+
+
+dist2( x, y, manhattanDistance) {
+	return manhattanDistance ?  abs(x) + abs(y) :  (x * x + y * y);
+}
+
+dist3(x, y, z, manhattanDistance) {
+	return manhattanDistance ?  abs(x) + abs(y) + abs(z) :  (x * x + y * y + z * z);
+}
+
+fsnoise (c, seed=1){return fract(sin(dot(c.xy*seed, vec(12.9898, 78.233))) * 43758.5453);}
+fsnoiseDigits(c, seed=1){return fract(sin(dot(c*seed, vec(0.129898, 0.78233))) * 437.585453);}
+
+// Modulo 7 without a division
+mod7( x) {
+	return x - floor(x * (1.0 / 7.0)) * 7.0;
+}
+
+
+
+// Author:  Stefan Gustavson (stefan.gustavson@liu.se)
+// Version: 2011-08-22
+//
+// Many thanks to Ian McEwan of Ashima Arts for the
+// ideas for permutation and gradient selection.
+//
+// Copyright (c) 2011 Stefan Gustavson. All rights reserved.
+// Distributed under the MIT license. See LICENSE file.
+// https://github.com/stegu/webgl-noise
+//
+//based on code from Iñigo Quílez http://www.iquilezles.org 
+perlin_noise(v) { //vec3(89.42, 122.37, 201.53)
+	Param rep(89.42, 122.37, 201.53);
+	Param sgn(1, min=0, max=1);
+
+
+	//reps = vec(89.42, 122.37, 201.5);
+	Pi0 = mod(floor(v), rep.xyxy); // Integer part for indexing
+	Pi1 = mod(Pi0 + vec(1.0, 1., 1.), rep); // Integer part + 1
+	Pi0 = mod289(Pi0);
+	Pi1 = mod289(Pi1);
+	Pf0 = fract(v); // Fractional part for interpolation
+	Pf1 = Pf0 - vec(1.0, 1.0, 1.0); // Fractional part - 1.0
+	ix = vec(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+	iy = vec(Pi0.y,Pi0.y , Pi1.y, Pi1.y);
+	iz0 = Pi0.zzzz;
+	iz1 = Pi1.zzzz;
+
+	ixy = permute(permute(ix) + iy);
+	ixy0 = permute(ixy + iz0);
+	ixy1 = permute(ixy + iz1);
+
+	gx0 = ixy0 * (1.0 / 7.0);
+	gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+	gx0 = fract(gx0);
+	gz0 = vec(0.5, .5, .5, .5) - abs(gx0) - abs(gy0);
+	sz0 = step(gz0, vec(0.0, 0, 0, 0));
+	gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+	gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+	gx1 = ixy1 * (1.0 / 7.0);
+	gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+	gx1 = fract(gx1);
+	gz1 = vec(0.5, .5, .5, .5) - abs(gx1) - abs(gy1);
+	sz1 = step(gz1, vec(0.0, 0, 0, 0));
+	gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+	gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+	g000 = vec(gx0.x,gy0.x,gz0.x);
+	g100 = vec(gx0.y,gy0.y,gz0.y);
+	g010 = vec(gx0.z,gy0.z,gz0.z);
+	g110 = vec(gx0.w,gy0.w,gz0.w);
+	g001 = vec(gx1.x,gy1.x,gz1.x);
+	g101 = vec(gx1.y,gy1.y,gz1.y);
+	g011 = vec(gx1.z,gy1.z,gz1.z);
+	g111 = vec(gx1.w,gy1.w,gz1.w);
+
+	norm0 = taylorInvSqrt(vec(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+	g000 *= norm0.x;
+	g010 *= norm0.y;
+	g100 *= norm0.z;
+	g110 *= norm0.w;
+	norm1 = taylorInvSqrt(vec(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+	g001 *= norm1.x;
+	g011 *= norm1.y;
+	g101 *= norm1.z;
+	g111 *= norm1.w;
+
+	n000 = dot(g000, Pf0);
+	n100 = dot(g100, vec(Pf1.x, Pf0.y,Pf0.z));
+	n010 = dot(g010, vec(Pf0.x, Pf1.y, Pf0.z));
+	n110 = dot(g110, vec(Pf1.x,Pf1.y, Pf0.z));
+	n001 = dot(g001, vec(Pf0.x, Pf0.y, Pf1.z));
+	n101 = dot(g101, vec(Pf1.x, Pf0.y, Pf1.z));
+	n011 = dot(g011, vec(Pf0.x, Pf1.y, Pf1.z));
+	n111 = dot(g111, Pf1);
+
+	fade_xyz = fade(Pf0);
+	n_z = mix(vec(n000, n100, n010, n110), vec(n001, n101, n011, n111), fade_xyz.z);
+	n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+	n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+	res = 2.2 * n_xyz;
+	return mix(Normalize(res), res, sgn);
+}
+
+
+simplex_noise(v) { 
+	Param sgn(1, min=0, max=1);
+	C = vec(1.0/6.0, 1.0/3.0) ;//vec2
+	D = vec(0.0, 0.5, 1.0, 2.0);//vec4
+
+	// First corner
+	i  = floor(v + dot(v, C.yyy) );//vec3
+	x0 =   v - i + dot(i, C.xxx) ;//vec3
+	// Other corners
+	g = step(x0.yzx, x0.xyz);//vec3
+	l = 1.0 - g;//vec3
+	i1 = min( g.xyz, l.zxy );//vec3
+	i2 = max( g.xyz, l.zxy );//vec3
+
+	x1 = x0 - i1 + C.xxx;//vec3
+	x2 = x0 - i2 + C.yyy; //vec3
+	x3 = x0 - D.yyy;//vec3
+
+	// Permutations
+	i = mod289(i); 
+	p = permute( permute( permute( 
+			 i.z + vec(0.0, i1.z, i2.z, 1.0 ))
+		   + i.y + vec(0.0, i1.y, i2.y, 1.0 )) 
+		   + i.x + vec(0.0, i1.x, i2.x, 1.0 ));//vec4
+
+	// Gradients: 7x7 points over a square, mapped onto an octahedron.
+	// The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)
+	n_ = 0.142857142857; // 1.0/7.0
+	ns = n_ * D.wyz - D.xzx;//vec3
+
+	j = p - 49.0 * floor(p * ns.z * ns.z);  //  vec4
+
+	x_ = floor(j * ns.z);//vec4
+	y_ = floor(j - 7.0 * x_ );    // vec4
+
+
+	x = x_ *ns.x + ns.yyyy; //vec4
+	y = y_ *ns.x + ns.yyyy;//vec4
+	h = 1.0 - abs(x) - abs(y);//vec4
+
+	b0 = vec( x.x, x.y, y.x, y.y );//vec4
+	b1 = vec( x.z, x.w, y.z, y.w );//vec4
+
+
+	s0 = floor(b0)*2.0 + 1.0;//vec4
+	s1 = floor(b1)*2.0 + 1.0;//vec4
+	sh = -step(h, vec(0.0, 0.0, 0.0, 0.0));//vec4
+
+	a0 = b0.xzyw + s0.xzyw*sh.xxyy ;//vec4
+	a1 = b1.xzyw + s1.xzyw*sh.zzww ;//vec4
+
+	p0 = vec(a0.x, a0.y,h.x);//vec3
+	p1 = vec(a0.z, a0.w,h.y);//vec3
+	p2 = vec(a1.x, a1.y,h.z);//vec3
+	p3 = vec(a1.z, a1.w,h.w);//vec3
+
+	//Normalise gradients
+	normg = taylorInvSqrt(vec(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));//vec4
+	p0 *= normg.x;
+	p1 *= normg.y;
+	p2 *= normg.z;
+	p3 *= normg.w;
+
+	// Mix final noise value
+	m = max(0.6 - vec(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);//vec4
+	m = m * m;
+
+	
+	res = 42.0 * dot( m*m, vec( dot(p0,x0), dot(p1,x1), 
+								dot(p2,x2), dot(p3,x3) ) );
+	return mix(Normalize(res), res, sgn);
+
+}
+
+cell_noise(point) {
+	Param sgn(0, min=0, max=1);
+	cx = floor(2. * point.x);
+	cy = floor(2. * point.y);
+	cz = point.z;//floor(point.z);
+	return simplex_noise(vec(cx, cy, cz), sgn=sgn);	
+
+}
+
+checker_noise(point) {
+	Param sgn(0, min=0, max=1);
+	cx = floor(2. * point.x);
+	cy = floor(2. * point.y);
+	cz = floor(point.z);
+	result = mod(cx + cy + cz, 2.0);
+	res = mix(sign(result), scale(sign(result), 0, 1, -1, 1),  sgn);
+	return res;
+}
+
+
+//
+//
+//// Ridged multifractal terrain model. 
+//// Copyright 1994 F. Kenton Musgrave 
+ridged_multifractal(point, H=.25, lacunarity=2., frequency=1, octaves=6, offset=.9, gain=1.5) {
+	Param sgn(0, min=0, max=1);
+	value = 1.0;
+	signal = 0.0;
+	p = point;
+	pwHL = pow(abs(lacunarity), -H);
+	pwr = pwHL;
+	weight = 0.;
+	signal = simplex_noise(p * frequency, sgn=1);
+	signal = offset - abs(signal);
+	signal *= signal;
+	value = signal * pwr;
+	weight = 1.0;
+	pwr *= pwHL;
+
+	for(i = 1; i < octaves; i+=1) {
+		p *= lacunarity;
+		weight = clamp(signal * gain, 0., 1.);
+		signal = simplex_noise(p * frequency, sgn=1);
+		signal = offset - abs(signal);
+		signal *= signal;
+		signal *= weight;
+		value += signal * pwr;
+		pwr *= pwHL;
+	}
+	return mix(clip(value),scale(value, 0, 1, -1, 1), sgn);
+}
+//
+//
+//
+//// Hybrid additive/multiplicative multifractal terrain model. 
+//// Copyright 1994 F. Kenton Musgrave 
+hybrid_multifractal(point, H=.25, lacunarity=3., frequency=1, octaves=4, offset=.25) {
+	Param sgn(0, min=0, max=1);
+	value = 1.0;
+	signal = 0.0;
+	p = point;
+	rmd = 0.0;
+	pwHL = pow(abs(lacunarity), -H);
+	pwr = pwHL;
+	weight = 0.;
+	value = pwr * (simplex_noise(p * frequency, sgn=1) + offset);
+	weight = value;
+	p *= lacunarity;
+	pwr *= pwHL;
+	for(i = 1; i < int(octaves); i+=1) {
+		weight = weight > 1. ? 1. : weight;
+		signal = pwr * (simplex_noise(p * frequency, sgn=1) + offset);
+		value += weight * signal;
+		weight *= signal;
+		pwr *= pwHL;
+		p *= lacunarity;
+	}
+	rmd = octaves - floor(octaves);
+	if(rmd != 0.0)
+		value += (rmd * simplex_noise(point * frequency,sgn=1) * pwr);
+	return mix(Normalize(value),value, sgn);
+}
+//
+//
+fbm(point, H=.5, lacunarity=2,frequency=1, octaves=6) {
+	Param sgn(0, min=0, max=1);
+	value = 0.0;
+	rem = 0.0;
+	pwrHL = pow(abs(lacunarity), -H);
+	pwr = 1.0;
+	p = point;
+	for(i = 0; i < int(octaves); i+=1) {
+		value += simplex_noise(p * frequency, sgn=1) * pwr;
+		pwr *= pwrHL;
+		p *= lacunarity;
+	}
+	rem = octaves - floor(octaves);
+	if(rem != 0.0) {
+		value += rem * simplex_noise(p * frequency, sgn=1) * pwr;
+	}
+	res = mix(Normalize(value), value, sgn);
+	return res;
+}
+//
+//// Procedural multifractal 
+//// Ebert, D., F. K. Musgrave, D. Peachey, K. Perlin, and S. Worley. 2003. Texturing and modeling: A procedural approach, 440. Third Edition. San Francisco: Morgan Kaufmann.
+multifractal(point, H=1.5, lacunarity=1.5, frequency=1, octaves=6, offset=.85) {
+	Param sgn(0, min=0, max=1);
+	value = 1.0;
+	rmd = 0.0;
+	pwHL = pow(abs(lacunarity), -H);
+	pwr = 1.0;
+	p = point;
+	for(i = 0; i < int(octaves); i+=1) {
+		value *= pwr * simplex_noise(p * frequency, sgn=1) + offset;
+		pwr *= pwHL;
+		p *= lacunarity;
+	}
+
+	rmd = octaves - floor(octaves);
+	if(rmd != 0.0)
+		value += (rmd * simplex_noise(point * frequency, sgn=1) * pwr);
+	return mix(value, scale(value, 0, 1, -1, 1), sgn);
+}
+//
+//
+
+//// Heterogeneous procedural terrain function 
+//// Ebert, D., F. K. Musgrave, D. Peachey, K. Perlin, and S. Worley. 2003. Texturing and modeling: A procedural approach, 500. Third Edition. San Francisco: Morgan Kaufmann.
+//
+hetero_terrain(point, H=.5, lacunarity=2., frequency=1., octaves=6, offset=.05) {
+	Param sgn(0, min=0, max=1);
+	increment=0.;
+	value = 0.;
+	rem = 0.;
+	p = point;
+	pwrHL = pow(abs(lacunarity), -H);
+	pwr = pwrHL;
+	value = offset + simplex_noise(p * frequency, sgn=1);
+	p = p * lacunarity;
+	for(i = 1; i < int(octaves); i+=1) {
+		increment = (simplex_noise(p * frequency, sgn=1) + offset) * pwr * value;
+		value += increment;
+		p  = p * lacunarity;
+	}
+	rem = mod(octaves, floor(octaves));
+	if(rem != 0.0) {
+		increment = (simplex_noise(p * frequency, sgn=1) + offset) * pwr * value;
+		value += rem * increment;
+	}
+	return mix(Normalize(value), value, sgn);
+}
+//
+//
+//
+
+
+voronoi_noise( point, jitter=1) {
+	Param sgn(0);
+	n = floor(point);
+	f = fract(point);
+	mg = vec(0.,0.);
+	mr = vec(0.,0.);
+	md = 8.0;
+	t = point.z;
+	for( j=-1; j<=1; j+=1 ) {
+		for( i=-1; i<=1; i+=1 ){
+			g = vec(float(i),float(j));
+			o = hash2( n + g ) * vec(jitter);
+			o = animate(o, t);
+			r = g + o - f;
+			d = dot(r,r);
+			if( d<md ) {
+				md = d;
+				mr = r;
+				mg = g;
+			}
+		}
+	}
+	md = 8.0;
+	for( j=-2; j<=2; j+=1 ) {
+		for( i=-2; i<=2; i+=1 ) {
+			g = mg + vec(float(i),float(j));
+			o = hash2( n + g ) * vec(jitter);
+			o = 0.5 + 0.5*sin( t + 6.2831*o );
+			r = g + o - f;
+			if( dot(mr-r,mr-r)>0.00001 )
+				md = min( md, dot( 0.5*(mr+r), normalize(r-mr) ) );
+		}
+	}
+	   res = vec( md, mr.x, mr.y );
+   
+	   return mix(res, scale(res, 0, 1, -1, 1), sgn);
+}
+//
+//
+//// The MIT License
+//// Copyright © 2017 Jan Forst
+//// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+voronoi_crackle(pos, multiply=8, reduce=2., off=.5, jitter=1) {
+	//Param sgn(0);
+	w = voronoi_noise(pos, jitter=jitter).xy;
+	return max(1., (w.x) * multiply) / reduce - off;
+}
+
+
+//
+//
+//// The MIT License
+//// Copyright © 2014 Inigo Quilez
+//// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+voronoi_smooth( v, falloff=64.0, jitter=1 ) {
+	p = floor( v.xy );	
+	f = fract( v.xy );
+	res = 0.0;
+	for( j=-1; j<=1; j+=1 ) {
+		for( i=-1; i<=1; i+=1 ) {
+			b = vec( i, j );
+			r = b - f;
+			o = hash2( p + b ) * vec(jitter, jitter);
+			o = animate(o, v.z);
+			d = length( r + o );
+			res += exp( -falloff * d );
+		}
+	}
+	return -(1.0/falloff)*log( res );
+}
+//
+//
+//
+//// The MIT License
+//// Copyright © 2014 Inigo Quilez
+//// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//// This is a procedural pattern that has 2 parameters, that generalizes cell-noise, 
+//// perlin-noise and voronoi, all of which can be written in terms of the former as:
+//// cellnoise(x) = pattern(0,0,x)
+//// perlin(x) = pattern(0,1,x)
+//// voronoi(x) = pattern(1,0,x)
+//
+
+
+voronoise( point,  amt=0, jitter=1 ) {
+	p = floor(point.xy);
+	f = fract(point.xy);
+	k = 1.0+63.0*pow(1.0-amt,4.0);
+	va = 0.0;
+	wt = 0.0;
+	for( j=-2; j<=2; j+=1 ) {
+		for( i=-2; i<=2; i+=1 ) {
+			g = vec( i,j );
+			o = hash3( p + g )*vec(jitter,jitter,1.0);
+			o = animate(o, point.z);
+			r = g - f + o.xy;
+			d = dot(r,r);
+			ww = pow( 1.0-smoothstep(0.0,1.414,sqrt(d)), k );
+			va += o.z*ww;
+			wt += ww;
+		}
+	}
+	   return vec(va/wt,va/wt,va/wt, 1);
+}
+
+
+
+//
+//
+//// The MIT License
+//// Copyright © 2013 Inigo Quilez
+//// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+voronoi_id( x, jitter=1, shade=.5 ) {
+	n = floor( x.xy );
+	f = fract( x.xy );
+	m = vec( 8.0,8.0,8.0 );
+	for( j=-1; j<=1; j+=1 ) {
+		for( i=-1; i<=1; i+=1 ) {
+			g = vec( float(i), float(j) );
+			o = hash2( n + g ) * vec(jitter, jitter);
+			r = g - f + animate(o, x.z);
+			d = dot( r, r );
+			if( d<m.x )
+				m = vec( d, o.x, o.y );
+		}
+	}
+	vID = vec( sqrt(m.x), m.y+m.z );
+	color = vec(mod(vID.y, 1.), mod(vID.y, 1.), mod(vID.y, 1.));
+	color *= clamp(1.0 - shade * vID.x * vID.x, 0.0, 1.0);
+	return color;
+}
+//
+
+
+curl_noise(p) {
+
+	ee = .1;
+	dx = vec( ee   , 0.0 , 0.0 );
+	dy = vec( 0.0 , ee   , 0.0 );
+	dz = vec( 0.0 , 0.0 , ee   );
+
+	p_x0 = simplex_noise( p - dx );
+	p_x1 = simplex_noise( p + dx );
+	p_y0 = simplex_noise( p - dy );
+	p_y1 = simplex_noise( p + dy );
+	p_z0 = simplex_noise( p - dz );
+	p_z1 = simplex_noise( p + dz );
+
+	x = p_y1.z - p_y0.z - p_z1.y + p_z0.y;
+	y = p_z1.x - p_z0.x - p_x1.z + p_x0.z;
+	z = p_x1.y - p_x0.y - p_y1.x + p_y0.x;
+
+	divisor = 1.0 / ( 2.0 * ee );
+	return normalize( vec( x , y , z ) * divisor );
+
+}
+//
+worley_noise(v) {
+	Param jitter(1);
+	Param manhattanDistance(0,min=0,max=1);
+	K =0.142857142857; // 1/7
+	Ko =0.428571428571; // 1/2-K/2
+	K2 =0.020408163265306; // 1/(7*7)
+	Kz =0.166666666667; // 1/6
+	Kzo =0.416666666667; // 1/2-1/6*2
+
+	Pi = mod(floor(v), 289.0);
+	Pf = fract(v) - 0.5;
+
+	Pfx = Pf.x + vec(1.0, 0.0, -1.0);
+	Pfy = Pf.y + vec(1.0, 0.0, -1.0);
+	Pfz = Pf.z + vec(1.0, 0.0, -1.0);
+
+	p = permute(Pi.x + vec(-1.0, 0.0, 1.0));
+	p1 = permute(p + Pi.y - 1.0);
+	p2 = permute(p + Pi.y);
+	p3 = permute(p + Pi.y + 1.0);
+
+	p11 = permute(p1 + Pi.z - 1.0);
+	p12 = permute(p1 + Pi.z);
+	p13 = permute(p1 + Pi.z + 1.0);
+
+	p21 = permute(p2 + Pi.z - 1.0);
+	p22 = permute(p2 + Pi.z);
+	p23 = permute(p2 + Pi.z + 1.0);
+
+	p31 = permute(p3 + Pi.z - 1.0);
+	p32 = permute(p3 + Pi.z);
+	p33 = permute(p3 + Pi.z + 1.0);
+
+	ox11 = fract(p11*K) - Ko;
+	oy11 = mod(floor(p11*K), 7.0)*K - Ko;
+	oz11 = floor(p11*K2)*Kz - Kzo; // p11 < 289 guaranteed
+
+	ox12 = fract(p12*K) - Ko;
+	oy12 = mod(floor(p12*K), 7.0)*K - Ko;
+	oz12 = floor(p12*K2)*Kz - Kzo;
+
+	ox13 = fract(p13*K) - Ko;
+	oy13 = mod(floor(p13*K), 7.0)*K - Ko;
+	oz13 = floor(p13*K2)*Kz - Kzo;
+
+	ox21 = fract(p21*K) - Ko;
+	oy21 = mod(floor(p21*K), 7.0)*K - Ko;
+	oz21 = floor(p21*K2)*Kz - Kzo;
+
+	ox22 = fract(p22*K) - Ko;
+	oy22 = mod(floor(p22*K), 7.0)*K - Ko;
+	oz22 = floor(p22*K2)*Kz - Kzo;
+
+	ox23 = fract(p23*K) - Ko;
+	oy23 = mod(floor(p23*K), 7.0)*K - Ko;
+	oz23 = floor(p23*K2)*Kz - Kzo;
+
+	ox31 = fract(p31*K) - Ko;
+	oy31 = mod(floor(p31*K), 7.0)*K - Ko;
+	oz31 = floor(p31*K2)*Kz - Kzo;
+
+	ox32 = fract(p32*K) - Ko;
+	oy32 = mod(floor(p32*K), 7.0)*K - Ko;
+	oz32 = floor(p32*K2)*Kz - Kzo;
+
+	ox33 = fract(p33*K) - Ko;
+	oy33 = mod(floor(p33*K), 7.0)*K - Ko;
+	oz33 = floor(p33*K2)*Kz - Kzo;
+
+	dx11 = Pfx + jitter*ox11;
+	dy11 = Pfy.x + jitter*oy11;
+	dz11 = Pfz.x + jitter*oz11;
+
+	dx12 = Pfx + jitter*ox12;
+	dy12 = Pfy.x + jitter*oy12;
+	dz12 = Pfz.y + jitter*oz12;
+
+	dx13 = Pfx + jitter*ox13;
+	dy13 = Pfy.x + jitter*oy13;
+	dz13 = Pfz.z + jitter*oz13;
+
+	dx21 = Pfx + jitter*ox21;
+	dy21 = Pfy.y + jitter*oy21;
+	dz21 = Pfz.x + jitter*oz21;
+
+	dx22 = Pfx + jitter*ox22;
+	dy22 = Pfy.y + jitter*oy22;
+	dz22 = Pfz.y + jitter*oz22;
+
+	dx23 = Pfx + jitter*ox23;
+	dy23 = Pfy.y + jitter*oy23;
+	dz23 = Pfz.z + jitter*oz23;
+
+	dx31 = Pfx + jitter*ox31;
+	dy31 = Pfy.z + jitter*oy31;
+	dz31 = Pfz.x + jitter*oz31;
+
+	dx32 = Pfx + jitter*ox32;
+	dy32 = Pfy.z + jitter*oy32;
+	dz32 = Pfz.y + jitter*oz32;
+
+	dx33 = Pfx + jitter*ox33;
+	dy33 = Pfy.z + jitter*oy33;
+	dz33 = Pfz.z + jitter*oz33;
+
+	d11 = dist3(dx11, dy11, dz11, manhattanDistance);
+	d12 = dist3(dx12, dy12, dz12, manhattanDistance);
+	d13 = dist3(dx13, dy13, dz13, manhattanDistance);
+	d21 = dist3(dx21, dy21, dz21, manhattanDistance);
+	d22 = dist3(dx22, dy22, dz22, manhattanDistance);
+	d23 = dist3(dx23, dy23, dz23, manhattanDistance);
+	d31 = dist3(dx31, dy31, dz31, manhattanDistance);
+	d32 = dist3(dx32, dy32, dz32, manhattanDistance);
+	d33 = dist3(dx33, dy33, dz33, manhattanDistance);
+
+
+	// Do it right and sort out both F1 and F2
+	d1a = min(d11, d12);
+	d12 = max(d11, d12);
+	d11 = min(d1a, d13); // Smallest now not in d12 or d13
+	d13 = max(d1a, d13);
+	d12 = min(d12, d13); // 2nd smallest now not in d13
+	d2a = min(d21, d22);
+	d22 = max(d21, d22);
+	d21 = min(d2a, d23); // Smallest now not in d22 or d23
+	d23 = max(d2a, d23);
+	d22 = min(d22, d23); // 2nd smallest now not in d23
+	d3a = min(d31, d32);
+	d32 = max(d31, d32);
+	d31 = min(d3a, d33); // Smallest now not in d32 or d33
+	d33 = max(d3a, d33);
+	d32 = min(d32, d33); // 2nd smallest now not in d33
+	da = min(d11, d21);
+	d21 = max(d11, d21);
+	d11 = min(da, d31); // Smallest now in d11
+	d31 = max(da, d31); // 2nd smallest now not in d31
+
+	d11 = vec( (d11.x < d11.y) ? d11.x : d11.y,  (d11.x < d11.y) ? d11.y : d11.x, d11.z); 
+
+	d11 = vec((d11.x < d11.z) ? d11.x : d11.z, d11.y, (d11.x < d11.z) ? d11.z : d11.x);
+	d12 = min(d12, d21); // 2nd smallest now not in d21
+	d12 = min(d12, d22); // nor in d22
+	d12 = min(d12, d31); // nor in d31
+	d12 = min(d12, d32); // nor in d32
+
+	d11 = vec(d11.x, min(d11.y,d12.x), min(d11.z,d12.y));
+
+	d11 = vec(d11.x, min(d11.y,d12.z), d11.z);
+
+	d11 = vec(d11.x, min(d11.y,d11.z), d11.z);
+	return sqrt(d11.xy); // F1, F2
+}
