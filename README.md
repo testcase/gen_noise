@@ -3,6 +3,8 @@
 a port of some noise functions to be used in jit.gl.pix or jit.gen in 
 max/msp
 
+most of these are taken from glsl code for jit.gl.bfg object. 
+
 note : noises other than voronoi based by default return signed values -1 
 to 1. you can set to unsigned by using function parameter sgn
 
@@ -21,23 +23,39 @@ examples/gen_noise_bfg_comparison.maxpat for usage)
 
 
 perlin_noise -> noise.perlin 
+
 simplex_noise -> noise.simplex
+
 cell_noise -> noise.cell
+
 checker_noise -> noise.checker
+
 ridged_multifractal -> fractal.multi.rigid
+
 hybrid_multifractal-> fractal.multi.hybrid
+
 fbm -> fractal.fbm
+
 multifractal -> fractal.multi
+
 hetero_terrain-> fractal.hetero
+
 voronoi_noise -> noise.voronoi
+
 voronoi_crackle -> noise.voronoi.crackle
+
 voronoi_smooth -> noise.voronoi.smooth
+
 voronoise -> noise.voronoise,
+
 voronoi_id -> noise.voronoi.id,
+
 distorted use distorted function with noise inputs
+
 distorted.2axis use distorted2axis function with noise inputs
 
 curl_noise
+
 worley_noise
 
 
