@@ -3,6 +3,8 @@
 a port of some noise functions to be used in jit.gl.pix or jit.gen in 
 max/msp
 
+most of these are taken from glsl code for jit.gl.bfg object. 
+
 note : noises other than voronoi based by default return signed values -1 
 to 1. you can set to unsigned by using function parameter sgn
 
