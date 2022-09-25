@@ -351,9 +351,9 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 481.0, 256.0, 291.0, 22.0 ],
+					"patching_rect" : [ 481.0, 256.0, 625.0, 22.0 ],
 					"style" : "default",
-					"text" : "jit.gl.camera @tripod 1 @locklook 1 @position 0 2 10"
+					"text" : "jit.gl.camera @tripod 1 @locklook 1 @position -3.807109 0.74375 1.352487 @rotatexyz -10.430632 -70.442261 -0."
 				}
 
 			}
